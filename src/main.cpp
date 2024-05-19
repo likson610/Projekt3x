@@ -5,13 +5,20 @@
 #include <fstream>
 #include <sstream>
 #include <pybind11/stl.h>
+#include <cmath>
 
 using namespace std;
+
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 
 int add(int i, int j) {
     return i + j + 200;
 }
+
 
 typedef vector<vector<vector<float>>> Image;
 typedef vector<vector<float>> Matrix;
@@ -86,7 +93,7 @@ Image convolve2d(const Image& image, const Matrix& kernel) {
     return output;
 }
 
-void processImage(const std::string& inputFilePath, const std::string& outputFilePath, const Matrix& kernel) {
+void processImage(const string& inputFilePath, const string& outputFilePath, const Matrix& kernel) {
     Image image = readPPM(inputFilePath);
 
     Image filteredImage = convolve2d(image, kernel);
@@ -94,7 +101,7 @@ void processImage(const std::string& inputFilePath, const std::string& outputFil
 }
 
 
-void image2d(const std::string& imageFilePath) {
+void image2d(const string& imageFilePath) {
     ifstream image;
     ofstream newImage;
     image.open(imageFilePath);
@@ -141,13 +148,13 @@ void image2d(const std::string& imageFilePath) {
 
 void test(double frequency) {
 
-    std::vector<double> x;
-    std::vector<double> y;
+    vector<double> x;
+    vector<double> y;
 
     for (int i = 0; i < 628; i++)
     {
         x.push_back(static_cast<double>(i) / 314);
-        y.push_back(std::sin(3.14 * frequency * x[i]));
+        y.push_back(sin(3.14 * frequency * x[i]));
     }
 
     matplot::plot(x, y);
@@ -157,13 +164,13 @@ void test(double frequency) {
 
 void test2(double frequency) {
 
-    std::vector<double> x;
-    std::vector<double> y;
+    vector<double> x;
+    vector<double> y;
 
     for (int i = 0; i < 628; i++)
     {
         x.push_back(static_cast<double>(i) / 314);
-        y.push_back(std::cos(3.14 * frequency * x[i]));
+        y.push_back(cos(3.14 * frequency * x[i]));
     }
 
     matplot::plot(x, y);
@@ -172,12 +179,12 @@ void test2(double frequency) {
 }
 void test3(double frequency) {
 
-    std::vector<double> x;
-    std::vector<double> y;
+   vector<double> x;
+    vector<double> y;
 
     for (int i = 0; i < 628; ++i) {
         x.push_back(static_cast<double>(i) / 100); // Skaluje x do zakresu od 0 do oko³o 6.28
-        double value = std::sin(3.14 * frequency * x[i]);
+        double value = sin(3.14 * frequency * x[i]);
         y.push_back(value >= 0 ? 1 : -1);
     }
 
@@ -187,13 +194,13 @@ void test3(double frequency) {
 }
 
 void test4(double frequency) {
-    std::vector<double> x;
-    std::vector<double> y;
+    vector<double> x;
+    vector<double> y;
 
     for (int i = 0; i < 628; ++i) {
-        x.push_back(static_cast<double>(i) / 100); // Skaluje x do zakresu od 0 do oko³o 6.28 (2?)
+        x.push_back(static_cast<double>(i) / 100); // Skaluje x do zakresu od 0 do oko³o 2*Pi
         double t = x[i] * frequency;
-        y.push_back(2.0 * (t - std::floor(t + 0.5))); // Generowanie fali pi³okszta³tnej
+        y.push_back(2.0 * (t - floor(t + 0.5))); // Generowanie fali pi³okszta³tnej
     }
 
     matplot::plot(x, y);
@@ -201,12 +208,12 @@ void test4(double frequency) {
 }
 
 
-void visualize_audio(const std::string& audioFilePath) {
+void visualize_audio(const string& audioFilePath) {
     AudioFile<double> audioFile;
     bool loadedOK = audioFile.load(audioFilePath);
 
     if (!loadedOK) {
-        std::cerr << "Nie udalo siê zaladowaæ pliku audio!" << std::endl;
+        cerr << "Nie udalo siê zaladowaæ pliku audio!" << endl;
         return;
     }
 
@@ -215,20 +222,166 @@ void visualize_audio(const std::string& audioFilePath) {
     int numChannels = audioFile.getNumChannels();
 
     if (numSamples <= 0) {
-        std::cerr << "Plik audio nie zawiera probek." << std::endl;
+        cerr << "Plik audio nie zawiera probek." << endl;
         return;
     }
 
-    std::vector<double> audioData(audioFile.samples[0].begin(), audioFile.samples[0].end());
+    vector<double> audioData(audioFile.samples[0].begin(), audioFile.samples[0].end());
 
 
-    std::vector<double> x(numSamples);
+    vector<double> x(numSamples);
     for (int i = 0; i < numSamples; ++i) {
         x[i] = static_cast<double>(i) / audioFile.getSampleRate();
     }
 
     matplot::plot(x, audioData);
     matplot::show();
+}
+
+
+
+    vector<float> convolve(const vector<float>& signal, const vector<float>& kernel) {
+    int signalSize = signal.size();
+    int kernelSize = kernel.size();
+    int outputSize = signalSize + kernelSize - 1;
+    vector<float> output(outputSize, 0.0f);
+
+    for (int i = 0; i < outputSize; ++i) {
+        int kMin = (i >= kernelSize - 1) ? i - (kernelSize - 1) : 0;
+        int kMax = (i < signalSize - 1) ? i : signalSize - 1;
+        for (int j = kMin; j <= kMax; ++j) {
+            output[i] += signal[j] * kernel[i - j];
+        }
+    }
+
+    int offset = (kernelSize - 1) / 2;
+    vector<float> trimmedOutput(signalSize);
+    for (int i = 0; i < signalSize; ++i) {
+        trimmedOutput[i] = output[i + offset];
+    }
+
+    return trimmedOutput;
+}
+
+    vector<float> createLowPassKernel(int kernelSize, float cutoffFrequency, int sampleRate) {
+    vector<float> kernel(kernelSize);
+    float sum = 0.0f;
+    int M = (kernelSize - 1) / 2;
+    float normalizedCutoff = 2.0f * cutoffFrequency / sampleRate;
+
+    for (int n = -M; n <= M; ++n) {
+        if (n == 0) {
+            kernel[n + M] = normalizedCutoff;
+        }
+        else {
+            kernel[n + M] = sinf(M_PI * n * normalizedCutoff) / (M_PI * n);
+            kernel[n + M] *= 0.5f * (1.0f - cosf(2.0f * M_PI * (n + M) / kernelSize));  // okno hanninga
+        }
+        sum += kernel[n + M];
+    }
+
+    for (auto& value : kernel) { // normalizacja
+        value /= sum;
+    }
+
+    return kernel;
+}
+
+
+void processAudioFileLow(const string& inputFilename, const string& outputFilename) {
+    AudioFile<float> audioFile;
+    if (!audioFile.load(inputFilename)) {
+        cerr << "Nie uda³o sie otworzyc pliku: " << inputFilename <<endl;
+        return;
+    }
+
+    int kernelSize = 101;  // Rozmiar kernela musi byæ nieparzysty
+    float cutoffFrequency = 5000.0f;  
+    
+    int sampleRate = audioFile.getSampleRate();
+    int numChannels = audioFile.getNumChannels();
+    vector<vector<float>> audio;
+
+   
+    if (numChannels == 1) { 
+        for (int i = 0; i < audioFile.getNumSamplesPerChannel(); ++i) {
+            audio.push_back({ audioFile.samples[0][i] });
+        }
+    }
+    else if (numChannels == 2) {
+        for (int c = 0; c < numChannels; ++c) {
+            vector<float> channelData;
+            for (int i = 0; i < audioFile.getNumSamplesPerChannel(); ++i) {
+                channelData.push_back(audioFile.samples[c][i]);
+            }
+            audio.push_back(channelData);
+        }
+    }
+    else {
+       cerr << "Za duzo kana³ow audio " << numChannels << endl;
+        return;
+    }
+
+    vector<float> kernel = createLowPassKernel(kernelSize, cutoffFrequency, sampleRate);
+
+    for (int c = 0; c < numChannels; ++c) {
+        vector<float> filteredAudio = convolve(audio[c], kernel);
+
+        for (int i = 0; i < filteredAudio.size(); ++i) {
+            audioFile.samples[c][i] = filteredAudio[i];
+        }
+    }
+
+    audioFile.save(outputFilename);
+
+    cout << "Zapisano jak " << outputFilename << endl;
+}
+
+
+
+void processAudioFile(const string& inputFilename, const string& outputFilename, const vector<float> kernel) {
+    AudioFile<float> audioFile;
+    if (!audioFile.load(inputFilename)) {
+        cerr << "Blad przy probie otwarcia pliku: " << inputFilename << endl;
+        return;
+    }
+
+    int sampleRate = audioFile.getSampleRate();
+    int numChannels = audioFile.getNumChannels();
+    vector<vector<float>> audio;
+
+
+    if (numChannels == 1) {
+        for (int i = 0; i < audioFile.getNumSamplesPerChannel(); ++i) {
+            audio.push_back({ audioFile.samples[0][i] });
+        }
+    }
+    else if (numChannels == 2) {
+        for (int c = 0; c < numChannels; ++c) {
+            vector<float> channelData;
+            for (int i = 0; i < audioFile.getNumSamplesPerChannel(); ++i) {
+                channelData.push_back(audioFile.samples[c][i]);
+            }
+            audio.push_back(channelData);
+        }
+    }
+    else {
+        cerr << "Za duzo kana³ow: " << numChannels << endl;
+        return;
+    }
+
+   
+    for (int c = 0; c < numChannels; ++c) {
+        vector<float> filteredAudio = convolve(audio[c], kernel);
+
+        for (int i = 0; i < filteredAudio.size(); ++i) {
+            audioFile.samples[c][i] = filteredAudio[i];
+        }
+    }
+
+    audioFile.save(outputFilename);
+
+    cout << "Zapisano plik: " << outputFilename << endl;
 }
 
 
@@ -244,4 +397,6 @@ PYBIND11_MODULE(cmakes, m) {
     m.def("matplot5", &visualize_audio, "cosunus(x)");
     m.def("poka", &image2d, "image2dPorcessing");
     m.def("processImage", &processImage, "Function to process an image");
+    m.def("filterAudioLow", &processAudioFileLow, "Function to process an image");
+    m.def("filterAudio", &processAudioFile, "Function to process an image");
 }
