@@ -26,10 +26,22 @@ highpass_kernel = np.array([
     -0.03702822, -0.03509184, -0.0329587
 ])
 
+black_white_filter_kernel = np.array([
+    [0.333, 0.333, 0.333],
+    [0.333, 0.333, 0.333],
+    [0.333, 0.333, 0.333]
+], dtype=np.float32)
+
+kernel_list_black = kernel.tolist()
+
 
 kernel_hipass = highpass_kernel.tolist()
 
-cmakes.filterAudio("jezyk.wav", "filteredHipass.wav", kernel_hipass)
+cmakes.AutoCorrelation("square.wav")
+
+#cmakes.processImage("monument.ppm", "newMomnument.ppm",kernel_list)
+
+#cmakes.filterAudio("jezyk.wav", "filteredHipass.wav", kernel_hipass)
 
 #cmakes.filterAudioLow("jezyk.wav","outfilewaff.wav")
 
